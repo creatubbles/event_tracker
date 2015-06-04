@@ -6,30 +6,37 @@ require "event_tracker/google_analytics"
 module EventTracker
   module HelperMethods
     def track_event(event_name, args = {})
+      return unless event_trackers_available?
       (session[:event_tracker_queue] ||= []) << [event_name, args]
     end
 
     def register_properties(args)
+      return unless event_trackers_available?
       (session[:registered_properties] ||= {}).merge!(args)
     end
 
     def mixpanel_set_config(args)
+      return unless event_trackers_available?
       (session[:mixpanel_set_config] ||= {}).merge!(args)
     end
 
     def mixpanel_people_set(args)
+      return unless event_trackers_available?
       (session[:mixpanel_people_set] ||= {}).merge!(args)
     end
 
     def mixpanel_people_set_once(args)
+      return unless event_trackers_available?
       (session[:mixpanel_people_set_once] ||= {}).merge!(args)
     end
 
     def mixpanel_people_increment(event_name)
+      return unless event_trackers_available?
       (session[:mixpanel_people_increment] ||= []) << event_name
     end
 
     def mixpanel_alias(identity)
+      return unless event_trackers_available?
       session[:mixpanel_alias] = identity
     end
   end
@@ -66,9 +73,13 @@ module EventTracker
       end
     end
 
+    def event_trackers_available?
+      ! event_trackers.empty?
+    end
+
     def append_event_tracking_tags
       yield
-      return if event_trackers.empty?
+      return unless event_trackers_available?
 
       body = response.body
       head_insert_at = body.index('</head')
@@ -135,6 +146,7 @@ module EventTracker
         include ActionControllerExtension
         include HelperMethods
         helper HelperMethods
+        helper_method :event_trackers_available?
       end
     end
   end
